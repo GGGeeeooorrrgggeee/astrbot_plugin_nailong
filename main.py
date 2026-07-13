@@ -27,8 +27,8 @@ _IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".tiff", 
 @register(
     "astrbot_plugin_nailong",
     "George",
-    "奶龙表情包管理 - 随机发送奶龙表情包，支持上传、配图删除表情包、后台管理",
-    "v1.2.0",
+    "奶龙表情包管理 - 随机发送奶龙表情包，支持上传、配图删除、查询表情包数量、后台管理",
+    "v1.3.0",
     "",
 )
 class NailongPlugin(Star):
@@ -110,6 +110,13 @@ class NailongPlugin(Star):
         """随机发送一张奶龙表情包"""
         async for r in self._send_random_image(event):
             yield r
+
+    # 新增：查询表情包数量指令，所有人可用
+    @filter.command("查询奶龙数量")
+    async def query_nailong_count(self, event: AstrMessageEvent):
+        """查询当前图库内奶龙表情包总数"""
+        total = self._count_images(self.data_dir)
+        yield event.plain_result(f"当前图库共有 {total} 张奶龙表情包")
 
     @filter.permission_type(filter.PermissionType.ADMIN)
     @filter.command("添加奶龙")
