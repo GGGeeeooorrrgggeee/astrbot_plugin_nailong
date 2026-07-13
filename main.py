@@ -28,7 +28,7 @@ _IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".tiff", 
     "astrbot_plugin_nailong",
     "George",
     "奶龙表情包管理 - 随机发送奶龙表情包，支持上传、配图删除、查询表情包数量、后台管理",
-    "v1.3.0",
+    "v1.2.0",
     "",
 )
 class NailongPlugin(Star):
