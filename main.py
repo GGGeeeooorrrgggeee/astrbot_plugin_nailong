@@ -116,7 +116,7 @@ class NailongPlugin(Star):
     async def query_nailong_count(self, event: AstrMessageEvent):
         """查询当前图库内奶龙表情包总数"""
         total = self._count_images(self.data_dir)
-        yield event.plain_result(f"当前图库共有 {total} 张奶龙表情包")
+        yield event.plain_result(f"当前图库共有 {total} 张奶龙表情包！")
 
     @filter.permission_type(filter.PermissionType.ADMIN)
     @filter.command("添加奶龙")
