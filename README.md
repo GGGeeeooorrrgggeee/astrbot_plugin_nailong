@@ -157,7 +157,7 @@
  - **更新时间**: 2026年7月13日
 
 ## 示例图如下
-![示例图](https://oss.george-blog.top/article/5-1.webp)
+![示例图](示例图.webp)
 
 ---
 
