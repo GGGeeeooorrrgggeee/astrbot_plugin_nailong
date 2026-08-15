@@ -224,10 +224,40 @@ class NailongPlugin(Star):
         image_files = self._list_images(self.data_dir)
         for path in image_files:
             path.unlink(missing_ok=True)
-        self._hash_index_path.unlink(missing_ok=True)
+        self._save_hash_index({})
         return len(image_files)
 
+    @staticmethod
+    def _detect_image_extension(data: bytes) -> str:
+        if data.startswith((b"GIF87a", b"GIF89a")):
+            return ".gif"
+        if data.startswith(b"\x89PNG\r\n\x1a\n"):
+            return ".png"
+        if data.startswith(b"\xff\xd8\xff"):
+            return ".jpg"
+        if data.startswith(b"RIFF") and data[8:12] == b"WEBP":
+            return ".webp"
+        if data.startswith(b"BM"):
+            return ".bmp"
+        if data.startswith((b"II*\x00", b"MM\x00*")):
+            return ".tiff"
+        if data.startswith(b"\x00\x00\x01\x00"):
+            return ".ico"
+        return ""
+
+    @staticmethod
+    def _filename_with_extension(filename: str, extension: str) -> str:
+        name = Path(filename or "").name.strip()
+        stem = Path(name).stem.strip().strip(".") if name else ""
+        if not stem:
+            stem = f"nailong_{random.randint(100000, 999999)}"
+        return f"{stem}{extension}"
+
     def _save_image_bytes_to_store(self, data: bytes, filename: str, fallback_ext: str = ".png") -> tuple:
+        detected_ext = self._detect_image_extension(data)
+        if detected_ext:
+            filename = self._filename_with_extension(filename, detected_ext)
+            fallback_ext = detected_ext
         digest = self._hash_bytes(data)
         duplicate = self._find_image_by_hash(digest)
         if duplicate:
@@ -538,6 +568,7 @@ class NailongPlugin(Star):
             skipped = 0
             appended = 0
             overwritten = 0
+            overwrite_hash_index = {}
             if mode == "overwrite":
                 overwritten = self._clear_image_store()
 
@@ -570,7 +601,13 @@ class NailongPlugin(Star):
                         imported += 1
 
                     save_path.write_bytes(data)
-                    self._record_hash(save_path, digest)
+                    if mode == "overwrite":
+                        overwrite_hash_index[self._relative_image_name(save_path)] = digest
+                    else:
+                        self._record_hash(save_path, digest)
+
+            if mode == "overwrite":
+                self._save_hash_index(overwrite_hash_index)
 
         return {
             "imported": imported,
