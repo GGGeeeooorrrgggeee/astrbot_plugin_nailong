@@ -220,6 +220,13 @@ class NailongPlugin(Star):
             index[new_name] = digest
         self._save_hash_index(index)
 
+    def _clear_image_store(self) -> int:
+        image_files = self._list_images(self.data_dir)
+        for path in image_files:
+            path.unlink(missing_ok=True)
+        self._hash_index_path.unlink(missing_ok=True)
+        return len(image_files)
+
     def _save_image_bytes_to_store(self, data: bytes, filename: str, fallback_ext: str = ".png") -> tuple:
         digest = self._hash_bytes(data)
         duplicate = self._find_image_by_hash(digest)
@@ -531,6 +538,9 @@ class NailongPlugin(Star):
             skipped = 0
             appended = 0
             overwritten = 0
+            if mode == "overwrite":
+                overwritten = self._clear_image_store()
+
             with zipfile.ZipFile(archive_path, "r") as zf:
                 for info in zf.infolist():
                     if info.is_dir():
@@ -556,20 +566,8 @@ class NailongPlugin(Star):
                         else:
                             imported += 1
                     else:
-                        overwritten_this = False
-                        if existing_by_hash and existing_by_hash.exists():
-                            self._remove_hash_record(existing_by_hash)
-                            if existing_by_hash.resolve() != target_path.resolve():
-                                existing_by_hash.unlink()
-                            overwritten_this = True
-                        if target_path.exists():
-                            self._remove_hash_record(target_path)
-                            overwritten_this = True
                         save_path = target_path
-                        if overwritten_this:
-                            overwritten += 1
-                        else:
-                            imported += 1
+                        imported += 1
 
                     save_path.write_bytes(data)
                     self._record_hash(save_path, digest)
