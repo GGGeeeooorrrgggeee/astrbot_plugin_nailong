@@ -1,0 +1,1383 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>来只奶龙</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #ffd35a;
+      --panel: #fff3bf;
+      --card: #fff8dd;
+      --text: #35230b;
+      --muted: #79603b;
+      --line: #d69b12;
+      --primary: #f4a300;
+      --primary-dark: #c87500;
+      --blue: #2f8de4;
+      --danger: #d62828;
+      --ok: #18724f;
+      --shadow: 0 10px 24px rgba(82, 54, 4, .16);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    main {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 22px auto;
+      transition: filter .16s ease, opacity .16s ease;
+    }
+
+    body.busy main {
+      filter: blur(4px);
+      opacity: .72;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    header,
+    .filters,
+    .actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 850;
+    }
+
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-logo {
+      width: 34px;
+      height: 34px;
+      flex: 0 0 auto;
+      object-fit: contain;
+    }
+
+    .count,
+    .size {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .status {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      z-index: 60;
+      display: none;
+      min-width: min(320px, calc(100vw - 40px));
+      max-width: min(620px, calc(100vw - 40px));
+      transform: translate(-50%, -50%);
+      padding: 20px 28px;
+      border: 2px solid #9a6100;
+      border-radius: 8px;
+      background: #f4a300;
+      color: #2f1e05;
+      box-shadow: 0 22px 56px rgba(53, 35, 11, .36);
+      font-size: 20px;
+      font-weight: 900;
+      line-height: 1.45;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .status.show {
+      display: block;
+    }
+
+    .status.ok {
+      color: var(--ok);
+    }
+
+    .status.err {
+      color: var(--danger);
+    }
+
+    .status.loading::before {
+      content: "";
+      width: 26px;
+      height: 26px;
+      display: inline-block;
+      margin-right: 12px;
+      vertical-align: -6px;
+      border: 3px solid rgba(47, 30, 5, .28);
+      border-top-color: #2f1e05;
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: minmax(260px, .75fr) minmax(420px, 1.25fr);
+      align-items: start;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .panel,
+    .item {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .panel {
+      padding: 14px;
+    }
+
+    .row,
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+
+    input[type="file"] {
+      max-width: 100%;
+    }
+
+    input[type="url"],
+    input[type="text"],
+    select {
+      min-width: 220px;
+      flex: 1;
+      height: 38px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: white;
+      color: var(--text);
+    }
+
+    .repo-panel {
+      display: grid;
+      gap: 12px;
+    }
+
+    .repo-panel .row {
+      align-items: stretch;
+    }
+
+    .repo-hint {
+      margin-top: -6px;
+      color: #5d430f;
+      font-size: 13px;
+      font-weight: 750;
+      line-height: 1.45;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .small {
+      height: 38px;
+      padding: 0 10px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #e6e0d4;
+      border-color: #d2c7b3;
+      color: var(--text);
+    }
+
+    .hidden-select {
+      display: none;
+    }
+
+    .accelerator-picker {
+      position: relative;
+      flex: 1;
+      min-width: 260px;
+    }
+
+    .accelerator-toggle {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      text-align: left;
+      background: white;
+      font-weight: 700;
+    }
+
+    .accelerator-toggle::after {
+      content: "⌄";
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .accelerator-menu {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: calc(100% + 6px);
+      z-index: 20;
+      display: none;
+      max-height: 260px;
+      overflow: auto;
+      padding: 6px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+      box-shadow: 0 14px 28px rgba(53, 35, 11, .2);
+    }
+
+    .accelerator-picker.open .accelerator-menu {
+      display: grid;
+      gap: 4px;
+    }
+
+    .accelerator-option {
+      width: 100%;
+      height: auto;
+      min-height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 7px 9px;
+      border: 0;
+      border-radius: 7px;
+      background: transparent;
+      color: var(--text);
+      text-align: left;
+      white-space: normal;
+      font-weight: 700;
+    }
+
+    .accelerator-option.active {
+      background: #fff0b8;
+      color: #2f1e05;
+    }
+
+    .accelerator-custom {
+      display: grid;
+      gap: 6px;
+      margin-top: 4px;
+      padding: 9px;
+      border-top: 1px solid #efd17a;
+    }
+
+    .accelerator-custom label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .custom-accelerator {
+      width: 100%;
+      min-width: 0;
+    }
+
+    button {
+      height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 0 12px;
+      background: #ffe7a2;
+      color: var(--text);
+      cursor: pointer;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    button.primary,
+    button.tab.active {
+      border-color: var(--primary-dark);
+      background: var(--primary);
+      color: #2f1e05;
+    }
+
+    button.blue {
+      border-color: var(--blue);
+      background: #e6f3ff;
+      color: #07518f;
+    }
+
+    button.danger {
+      border-color: #f3a6a6;
+      background: #fff4f4;
+      color: var(--danger);
+    }
+
+    button:disabled {
+      opacity: .55;
+      cursor: not-allowed;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      align-items: stretch;
+      gap: 12px;
+    }
+
+    .item {
+      position: relative;
+      min-height: 244px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--card);
+    }
+
+    .selectBox {
+      position: absolute;
+      left: 8px;
+      top: 8px;
+      z-index: 2;
+      width: 18px;
+      height: 18px;
+    }
+
+    .badge {
+      position: absolute;
+      right: 8px;
+      top: 8px;
+      z-index: 2;
+      padding: 3px 7px;
+      border-radius: 999px;
+      background: rgba(53, 35, 11, .78);
+      color: white;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .thumb {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      background: #efad1f;
+      cursor: zoom-in;
+    }
+
+    .thumb img {
+      max-width: 100%;
+      max-height: 100%;
+      display: block;
+      object-fit: contain;
+    }
+
+    .thumb.loading img {
+      opacity: 0;
+    }
+
+    .thumb-spinner,
+    .preview-spinner {
+      width: 34px;
+      height: 34px;
+      border: 4px solid rgba(53, 35, 11, .24);
+      border-top-color: #35230b;
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+
+    .thumb-spinner {
+      position: absolute;
+      inset: 0;
+      margin: auto;
+    }
+
+    .thumb:not(.loading) .thumb-spinner {
+      display: none;
+    }
+
+    .meta {
+      margin-top: auto;
+      padding: 10px 10px 4px;
+      display: grid;
+      gap: 4px;
+    }
+
+    .name {
+      min-height: 18px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 13px;
+      line-height: 18px;
+      font-weight: 800;
+    }
+
+    .size {
+      font-size: 12px;
+    }
+
+    .item-actions {
+      display: flex;
+      padding: 0 10px 12px;
+    }
+
+    .item-actions button {
+      flex: 1;
+      height: 30px;
+      font-size: 12px;
+    }
+
+    .empty {
+      grid-column: 1 / -1;
+      padding: 34px 16px;
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      background: rgba(255, 248, 221, .7);
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 22px;
+      background: rgba(53, 35, 11, .45);
+    }
+
+    .overlay.open {
+      display: flex;
+    }
+
+    .preview-box,
+    .dialog-box {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: 0 18px 46px rgba(53, 35, 11, .28);
+    }
+
+    .preview-box {
+      width: min(860px, calc(100vw - 44px));
+      max-height: calc(100vh - 44px);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 12px;
+    }
+
+    .preview-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .preview-title {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 14px;
+      font-weight: 850;
+    }
+
+    .preview-close {
+      width: 38px;
+      padding: 0;
+      flex: 0 0 auto;
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .preview-stage {
+      position: relative;
+      min-height: 220px;
+      max-height: 72vh;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      border-radius: 7px;
+      background: #efad1f;
+    }
+
+    .preview-stage img {
+      grid-area: 1 / 1;
+      max-width: 100%;
+      max-height: 72vh;
+      display: block;
+      object-fit: contain;
+    }
+
+    .preview-spinner {
+      grid-area: 1 / 1;
+    }
+
+    .preview-stage.loading img {
+      opacity: 0;
+    }
+
+    .preview-stage:not(.loading) .preview-spinner {
+      display: none;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .dialog-box {
+      width: min(420px, calc(100vw - 44px));
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+    }
+
+    .dialog-title {
+      font-size: 16px;
+      font-weight: 850;
+    }
+
+    .dialog-message {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    @media (max-width: 760px) {
+      main {
+        width: min(100vw - 20px, 1180px);
+        margin: 14px auto;
+      }
+
+      header,
+      .toolbar,
+      .filters,
+      .actions {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+
+      .grid {
+        grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <div class="brand-title">
+          <img class="brand-logo" id="brandLogo" alt="" hidden>
+          <h1>来只奶龙</h1>
+        </div>
+        <div class="count" id="count">正在读取图库</div>
+      </div>
+      <button id="refreshBtn" type="button">刷新</button>
+    </header>
+
+    <section class="toolbar">
+      <div class="panel upload-panel">
+        <div class="row">
+          <input id="fileInput" type="file" accept="image/*,.gif,.webp,.bmp,.tiff,.ico" multiple>
+          <button class="primary" id="uploadBtn" type="button">添加表情包</button>
+        </div>
+      </div>
+
+      <div class="panel repo-panel">
+        <div class="row">
+          <input id="repoUrl" type="url" value="" placeholder="可填写自定义 GitHub 仓库地址">
+          <select id="downloadMode" aria-label="下载图库模式">
+            <option value="overwrite" selected>下载图库（覆盖已存在）</option>
+            <option value="append">下载图库（追加已存在）</option>
+          </select>
+          <button class="primary" id="downloadBtn" type="button">下载图库</button>
+        </div>
+        <div class="repo-hint">地址为空则默认使用官方 GitHub 仓库 https://github.com/GGGeeeooorrrgggeee/nailong-memes</div>
+        <div class="row">
+          <select class="hidden-select" id="acceleratorSelect" aria-label="GitHub 加速地址"></select>
+          <div class="accelerator-picker" id="acceleratorPicker">
+            <button class="accelerator-toggle" id="acceleratorToggle" type="button">GitHub 加速地址</button>
+            <div class="accelerator-menu" id="acceleratorMenu">
+              <div class="accelerator-custom">
+                <label for="accelerator">自定义加速地址</label>
+                <input class="custom-accelerator" id="accelerator" type="text" placeholder="自定义 GitHub 加速地址">
+              </div>
+            </div>
+          </div>
+          <button class="small" id="testAcceleratorBtn" type="button">测试加速地址</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="filters">
+      <div class="tabs" id="tabs">
+        <button class="tab active" data-filter="all" type="button">全部</button>
+        <button class="tab" data-filter="gif" type="button">GIF动态表情包</button>
+        <button class="tab" data-filter="static" type="button">静态表情包</button>
+      </div>
+    </section>
+
+    <section class="actions">
+      <div class="row">
+        <button id="selectAllBtn" type="button">全选当前分类</button>
+        <button id="clearBtn" type="button">取消选择</button>
+        <button class="blue" id="exportBtn" type="button" disabled>下载选中</button>
+        <button class="danger" id="deleteBtn" type="button" disabled>删除选中</button>
+      </div>
+      <div class="count" id="visibleCount"></div>
+    </section>
+
+    <section class="grid" id="grid"></section>
+  </main>
+
+  <div class="status" id="status"></div>
+
+  <div class="overlay" id="preview" aria-hidden="true">
+    <div class="preview-box">
+      <div class="preview-top">
+        <div class="preview-title" id="previewTitle"></div>
+        <button class="preview-close" id="previewClose" type="button" aria-label="关闭预览">×</button>
+      </div>
+      <div class="preview-stage" id="previewStage">
+        <div class="preview-spinner"></div>
+        <img id="previewImage" alt="">
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="dialog" aria-hidden="true">
+    <div class="dialog-box">
+      <div class="dialog-title" id="dialogTitle"></div>
+      <div class="dialog-message" id="dialogMessage"></div>
+      <input id="dialogInput" type="text">
+      <div class="dialog-actions">
+        <button id="dialogCancel" type="button">取消</button>
+        <button class="primary" id="dialogOk" type="button">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/api/plugin/page/bridge-sdk.js"></script>
+  <script>
+    var sdk = window.AstrBotPluginPage;
+    var grid = document.getElementById("grid");
+    var statusEl = document.getElementById("status");
+    var brandLogo = document.getElementById("brandLogo");
+    var countEl = document.getElementById("count");
+    var visibleCountEl = document.getElementById("visibleCount");
+    var fileInput = document.getElementById("fileInput");
+    var repoUrl = document.getElementById("repoUrl");
+    var downloadMode = document.getElementById("downloadMode");
+    var acceleratorSelect = document.getElementById("acceleratorSelect");
+    var acceleratorPicker = document.getElementById("acceleratorPicker");
+    var acceleratorToggle = document.getElementById("acceleratorToggle");
+    var acceleratorMenu = document.getElementById("acceleratorMenu");
+    var accelerator = document.getElementById("accelerator");
+    var testAcceleratorBtn = document.getElementById("testAcceleratorBtn");
+    var deleteBtn = document.getElementById("deleteBtn");
+    var exportBtn = document.getElementById("exportBtn");
+    var tabs = document.getElementById("tabs");
+    var preview = document.getElementById("preview");
+    var previewStage = document.getElementById("previewStage");
+    var previewTitle = document.getElementById("previewTitle");
+    var previewImage = document.getElementById("previewImage");
+    var previewClose = document.getElementById("previewClose");
+    var dialog = document.getElementById("dialog");
+    var dialogTitle = document.getElementById("dialogTitle");
+    var dialogMessage = document.getElementById("dialogMessage");
+    var dialogInput = document.getElementById("dialogInput");
+    var dialogCancel = document.getElementById("dialogCancel");
+    var dialogOk = document.getElementById("dialogOk");
+    var dialogResolve = null;
+    var images = [];
+    var selected = {};
+    var filter = "all";
+    var acceleratorOptions = [];
+    var acceleratorLatency = {};
+    var statusTimer = null;
+
+    function normalize(response) {
+      var data = response;
+      if (typeof data === "string") {
+        data = JSON.parse(data);
+      }
+      if (data && data.status === "ok" && Object.prototype.hasOwnProperty.call(data, "data")) {
+        data = data.data;
+      }
+      if (data && data.status === "error") {
+        throw new Error(data.message || "操作失败");
+      }
+      if (data && data.ok === false) {
+        throw new Error(data.message || "操作失败");
+      }
+      return data || {};
+    }
+
+    function apiGet(endpoint, params) {
+      return sdk.apiGet(endpoint, params || {}).then(normalize);
+    }
+
+    function apiPost(endpoint, body) {
+      return sdk.apiPost(endpoint, body || {}).then(normalize);
+    }
+
+    function loadBrandLogo() {
+      apiGet("logo-data").then(function(data) {
+        if (data.data_url) {
+          brandLogo.src = data.data_url;
+          brandLogo.hidden = false;
+        }
+      }).catch(function() {
+        brandLogo.hidden = true;
+      });
+    }
+
+    function selectedNames() {
+      var names = [];
+      for (var key in selected) {
+        if (selected[key]) names.push(key);
+      }
+      return names;
+    }
+
+    function selectedCount() {
+      return selectedNames().length;
+    }
+
+    function setStatus(message, type) {
+      if (statusTimer) {
+        window.clearTimeout(statusTimer);
+        statusTimer = null;
+      }
+      statusEl.textContent = message || "";
+      document.body.classList.toggle("busy", !!message && !type);
+      statusEl.className = "status " + (type || "loading") + (message ? " show" : "");
+      if (message && type) {
+        statusTimer = window.setTimeout(function() {
+          statusEl.textContent = "";
+          statusEl.className = "status";
+          document.body.classList.remove("busy");
+          statusTimer = null;
+        }, type === "err" ? 3600 : 1800);
+      } else if (!message) {
+        document.body.classList.remove("busy");
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + " B";
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+      return (bytes / 1024 / 1024).toFixed(1) + " MB";
+    }
+
+    function renderAccelerators(options, selectedUrl) {
+      acceleratorOptions = options || acceleratorOptions || [];
+      var list = acceleratorOptions;
+      var current = typeof selectedUrl === "string" ? selectedUrl : "";
+      if (typeof selectedUrl !== "string" && acceleratorSelect.options.length) current = acceleratorSelect.value;
+      var customValue = accelerator.value;
+      var matched = false;
+      acceleratorSelect.innerHTML = "";
+
+      var off = document.createElement("option");
+      off.value = "";
+      off.textContent = "不使用 GitHub 加速地址";
+      if (current === "") off.selected = true;
+      acceleratorSelect.appendChild(off);
+
+      for (var i = 0; i < list.length; i++) {
+        var option = document.createElement("option");
+        option.value = list[i].url || "";
+        option.textContent = acceleratorLabel(list[i]);
+        if ((list[i].url || "") === current) {
+          option.selected = true;
+          matched = true;
+        }
+        acceleratorSelect.appendChild(option);
+      }
+
+      var custom = document.createElement("option");
+      custom.value = "__custom__";
+      custom.textContent = customAcceleratorLabel();
+      if (current && !matched) custom.selected = true;
+      acceleratorSelect.appendChild(custom);
+
+      if (current === "__custom__") {
+        accelerator.value = customValue;
+      } else {
+        accelerator.value = current && !matched ? current : "";
+      }
+      updateTestButtonState();
+      renderAcceleratorMenu();
+    }
+
+    function renderAcceleratorMenu() {
+      acceleratorMenu.innerHTML = "";
+      for (var i = 0; i < acceleratorSelect.options.length; i++) {
+        var option = acceleratorSelect.options[i];
+        var button = document.createElement("button");
+        button.type = "button";
+        button.className = "accelerator-option" + (option.value === acceleratorSelect.value ? " active" : "");
+        button.setAttribute("data-value", option.value);
+        button.textContent = option.textContent;
+        acceleratorMenu.appendChild(button);
+      }
+      var customWrap = document.createElement("div");
+      customWrap.className = "accelerator-custom";
+      var customLabel = document.createElement("label");
+      customLabel.setAttribute("for", "accelerator");
+      customLabel.textContent = "自定义加速地址";
+      customWrap.appendChild(customLabel);
+      customWrap.appendChild(accelerator);
+      acceleratorMenu.appendChild(customWrap);
+      var selected = acceleratorSelect.options[acceleratorSelect.selectedIndex];
+      acceleratorToggle.textContent = selected ? selected.textContent : "GitHub 加速地址";
+      if (acceleratorSelect.value === "__custom__") {
+        window.setTimeout(function() { accelerator.focus(); }, 0);
+      }
+    }
+
+    function setAcceleratorValue(value) {
+      acceleratorSelect.value = value;
+      if (value !== "__custom__") accelerator.value = "";
+      updateTestButtonState();
+      renderAcceleratorMenu();
+    }
+
+    function acceleratorLabel(item) {
+      var label = item.label || item.url || "";
+      var result = acceleratorLatency[item.url || ""];
+      if (!result) return label;
+      if (result.ok) return label + "（" + result.latency_ms + " ms）";
+      return label + "（失败）";
+    }
+
+    function customAcceleratorLabel() {
+      var result = acceleratorLatency.__custom__;
+      if (!result) return "自定义加速地址";
+      if (result.ok) return "自定义加速地址（" + result.latency_ms + " ms）";
+      return "自定义加速地址（失败）";
+    }
+
+    function selectedAccelerator() {
+      return (acceleratorSelect.value === "__custom__" ? accelerator.value : acceleratorSelect.value).trim();
+    }
+
+    function canTestAccelerators() {
+      return acceleratorOptions.length > 0 || selectedAccelerator() !== "";
+    }
+
+    function updateTestButtonState() {
+      testAcceleratorBtn.disabled = !canTestAccelerators();
+    }
+
+    function labelFor(category) {
+      return category === "gif" ? "GIF" : "静态";
+    }
+
+    function currentImages() {
+      var result = [];
+      for (var i = 0; i < images.length; i++) {
+        if (filter === "all" || images[i].category === filter) {
+          result.push(images[i]);
+        }
+      }
+      return result;
+    }
+
+    function updateActionState() {
+      var disabled = selectedCount() === 0;
+      deleteBtn.disabled = disabled;
+      exportBtn.disabled = disabled;
+    }
+
+    function syncSelectionState() {
+      var boxes = grid.querySelectorAll(".selectBox");
+      for (var i = 0; i < boxes.length; i++) {
+        var item = findItem(boxes[i]);
+        if (item) boxes[i].checked = !!selected[item.getAttribute("data-name")];
+      }
+      updateActionState();
+    }
+
+    function imageByName(name) {
+      for (var i = 0; i < images.length; i++) {
+        if (images[i].name === name) return images[i];
+      }
+      return null;
+    }
+
+    function findItem(node) {
+      while (node && node !== grid) {
+        if (node.getAttribute && node.getAttribute("data-name")) return node;
+        node = node.parentNode;
+      }
+      return null;
+    }
+
+    function closePreview() {
+      preview.className = "overlay";
+      preview.setAttribute("aria-hidden", "true");
+      previewStage.className = "preview-stage";
+      previewImage.removeAttribute("src");
+      previewImage.onload = null;
+      previewImage.onerror = null;
+      previewTitle.textContent = "";
+    }
+
+    function openPreview(name) {
+      var image = imageByName(name);
+      if (!image) return;
+      previewTitle.textContent = image.filename;
+      previewImage.alt = "";
+      previewImage.removeAttribute("src");
+      previewStage.className = "preview-stage loading";
+      preview.className = "overlay open";
+      preview.setAttribute("aria-hidden", "false");
+      previewImage.onload = function() {
+        previewStage.className = "preview-stage";
+      };
+      previewImage.onerror = function() {
+        previewImage.removeAttribute("src");
+        previewStage.className = "preview-stage loading";
+      };
+      apiGet("image-data", { name: image.name, size: "original" }).then(function(data) {
+        if (data.data_url) previewImage.src = data.data_url;
+      }).catch(function() {
+        previewImage.removeAttribute("src");
+        previewStage.className = "preview-stage loading";
+      });
+    }
+
+    function loadPreviewImage(item, image) {
+      var thumb = item.querySelector(".thumb");
+      var img = item.querySelector(".thumb img");
+      if (!thumb || !img) return;
+      thumb.classList.add("loading");
+      img.alt = "";
+      img.onload = function() {
+        thumb.classList.remove("loading");
+      };
+      img.onerror = function() {
+        img.removeAttribute("src");
+        thumb.classList.add("loading");
+      };
+      apiGet("image-data", { name: image.name, size: "preview" }).then(function(data) {
+        if (img && data.data_url) img.src = data.data_url;
+      }).catch(function() {
+        thumb.classList.add("loading");
+      });
+    }
+
+    function closeDialog(value) {
+      dialog.className = "overlay";
+      dialog.setAttribute("aria-hidden", "true");
+      if (dialogResolve) {
+        dialogResolve(value);
+        dialogResolve = null;
+      }
+    }
+
+    function showDialog(options) {
+      dialogTitle.textContent = options.title || "";
+      dialogMessage.textContent = options.message || "";
+      dialogInput.value = options.value || "";
+      dialogInput.style.display = options.input ? "" : "none";
+      dialogOk.textContent = options.okText || "确定";
+      dialog.className = "overlay open";
+      dialog.setAttribute("aria-hidden", "false");
+      window.setTimeout(function() {
+        if (options.input) {
+          dialogInput.focus();
+          dialogInput.select();
+        } else {
+          dialogOk.focus();
+        }
+      }, 0);
+      return new Promise(function(resolve) {
+        dialogResolve = function(confirmed) {
+          resolve(confirmed ? (options.input ? dialogInput.value : true) : null);
+        };
+      });
+    }
+
+    function render() {
+      var gifCount = 0;
+      var staticCount = 0;
+      for (var i = 0; i < images.length; i++) {
+        if (images[i].category === "gif") gifCount++;
+        if (images[i].category === "static") staticCount++;
+      }
+
+      var visible = currentImages();
+      countEl.textContent = "共 " + images.length + " 张，GIF " + gifCount + " 张，静态 " + staticCount + " 张";
+      visibleCountEl.textContent = "当前分类 " + visible.length + " 张";
+      grid.innerHTML = "";
+
+      var tabButtons = tabs.querySelectorAll(".tab");
+      for (var t = 0; t < tabButtons.length; t++) {
+        if (tabButtons[t].getAttribute("data-filter") === filter) tabButtons[t].classList.add("active");
+        else tabButtons[t].classList.remove("active");
+      }
+
+      if (!visible.length) {
+        grid.innerHTML = '<div class="empty">当前分类还没有表情包</div>';
+        updateActionState();
+        return;
+      }
+
+      for (var j = 0; j < visible.length; j++) {
+        var image = visible[j];
+        var item = document.createElement("article");
+        item.className = "item";
+        item.setAttribute("data-name", image.name);
+        item.innerHTML =
+          '<input class="selectBox" type="checkbox" aria-label="' + escapeHtml(image.filename) + '"' + (selected[image.name] ? " checked" : "") + ">" +
+          '<div class="badge">' + labelFor(image.category) + "</div>" +
+          '<div class="thumb loading" title="点击查看整张图"><div class="thumb-spinner"></div><img alt="" loading="lazy"></div>' +
+          '<div class="meta">' +
+          '<div class="name" title="' + escapeHtml(image.filename) + '">' + escapeHtml(image.filename) + "</div>" +
+          '<div class="size">' + formatSize(image.size) + "</div>" +
+          "</div>" +
+          '<div class="item-actions"><button class="renameBtn" type="button">重命名</button></div>';
+        grid.appendChild(item);
+        loadPreviewImage(item, image);
+      }
+      updateActionState();
+    }
+
+    function loadImages(silent) {
+      if (!silent) setStatus("正在刷新");
+      return apiGet("list").then(function(data) {
+        images = data.images || [];
+        if (!acceleratorSelect.options.length) {
+          renderAccelerators(data.github_accelerators || [], data.github_accelerator || "");
+        }
+        var nextSelected = {};
+        for (var i = 0; i < images.length; i++) {
+          if (selected[images[i].name]) nextSelected[images[i].name] = true;
+        }
+        selected = nextSelected;
+        render();
+        if (!silent) setStatus("已刷新", "ok");
+      }).catch(function(error) {
+        setStatus(error.message, "err");
+      });
+    }
+
+    function readFileAsDataUrl(file) {
+      return new Promise(function(resolve, reject) {
+        var reader = new FileReader();
+        reader.onload = function() {
+          resolve({ name: file.name, data: reader.result });
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function uploadByJson(file) {
+      return readFileAsDataUrl(file).then(function(fileData) {
+        return apiPost("upload", { files: [fileData] });
+      });
+    }
+
+    function uploadOne(file) {
+      if (sdk.upload) {
+        return sdk.upload("upload", file).then(normalize).catch(function() {
+          return uploadByJson(file);
+        });
+      }
+      return uploadByJson(file);
+    }
+
+    tabs.addEventListener("click", function(event) {
+      if (!event.target || !event.target.classList.contains("tab")) return;
+      filter = event.target.getAttribute("data-filter");
+      selected = {};
+      render();
+    });
+
+    grid.addEventListener("change", function(event) {
+      if (!event.target || !event.target.classList.contains("selectBox")) return;
+      var item = findItem(event.target);
+      if (!item) return;
+      var name = item.getAttribute("data-name");
+      if (event.target.checked) selected[name] = true;
+      else delete selected[name];
+      updateActionState();
+    });
+
+    grid.addEventListener("click", function(event) {
+      if (!event.target) return;
+
+      if (event.target.classList.contains("renameBtn")) {
+        var renameItem = findItem(event.target);
+        if (!renameItem) return;
+        var renameName = renameItem.getAttribute("data-name");
+        var image = imageByName(renameName);
+        if (!image) return;
+
+        showDialog({
+          title: "重命名表情包",
+          message: "请输入新的文件名，会直接修改本地文件名。",
+          value: image.filename,
+          input: true,
+          okText: "重命名"
+        }).then(function(next) {
+          if (!next || next === image.filename) return;
+          setStatus("正在重命名");
+          return apiPost("rename", { name: image.name, new_name: next }).then(function() {
+            delete selected[image.name];
+            setStatus("已重命名", "ok");
+            return loadImages(true);
+          });
+        }).catch(function(error) {
+          setStatus(error.message, "err");
+        });
+        return;
+      }
+
+      var item = findItem(event.target);
+      var parent = event.target.parentNode;
+      var isThumb = event.target.classList.contains("thumb") || (parent && parent.classList && parent.classList.contains("thumb"));
+      if (item && isThumb) {
+        openPreview(item.getAttribute("data-name"));
+      }
+    });
+
+    previewClose.addEventListener("click", closePreview);
+    preview.addEventListener("click", function(event) {
+      if (event.target === preview) closePreview();
+    });
+
+    dialogCancel.addEventListener("click", function() { closeDialog(false); });
+    dialogOk.addEventListener("click", function() { closeDialog(true); });
+    dialog.addEventListener("click", function(event) {
+      if (event.target === dialog) closeDialog(false);
+    });
+    dialogInput.addEventListener("keydown", function(event) {
+      if (event.key === "Enter") closeDialog(true);
+    });
+    document.addEventListener("keydown", function(event) {
+      if (event.key !== "Escape") return;
+      if (dialog.classList.contains("open")) closeDialog(false);
+      else closePreview();
+    });
+
+    document.getElementById("refreshBtn").addEventListener("click", function() {
+      loadImages(false);
+    });
+
+    document.getElementById("uploadBtn").addEventListener("click", function() {
+      var files = Array.prototype.slice.call(fileInput.files || []);
+      if (!files.length) {
+        setStatus("请选择表情包", "err");
+        return;
+      }
+      setStatus("正在上传");
+      Promise.all(files.map(uploadOne)).then(function(results) {
+        var savedCount = 0;
+        var duplicateCount = 0;
+        for (var i = 0; i < results.length; i++) {
+          savedCount += (results[i].saved || []).length;
+          duplicateCount += results[i].duplicate || 0;
+        }
+        fileInput.value = "";
+        var message = savedCount ? "已添加 " + savedCount + " 张表情包" : "没有新增表情包";
+        if (duplicateCount) message += "，" + duplicateCount + " 张已存在";
+        setStatus(message, savedCount ? "ok" : "err");
+        return loadImages(true);
+      }).catch(function(error) {
+        setStatus(error.message, "err");
+      });
+    });
+
+    acceleratorToggle.addEventListener("click", function(event) {
+      event.stopPropagation();
+      acceleratorPicker.classList.toggle("open");
+    });
+
+    acceleratorMenu.addEventListener("click", function(event) {
+      event.stopPropagation();
+      if (!event.target || !event.target.classList.contains("accelerator-option")) return;
+      var value = event.target.getAttribute("data-value") || "";
+      setAcceleratorValue(value);
+      if (value === "__custom__") {
+        acceleratorPicker.classList.add("open");
+        return;
+      }
+      acceleratorPicker.classList.remove("open");
+    });
+
+    accelerator.addEventListener("input", function() {
+      if (acceleratorSelect.value !== "__custom__") {
+        acceleratorSelect.value = "__custom__";
+        renderAcceleratorMenu();
+      }
+      updateTestButtonState();
+    });
+
+    document.addEventListener("click", function(event) {
+      if (acceleratorPicker.contains(event.target) || event.target === testAcceleratorBtn) return;
+      acceleratorPicker.classList.remove("open");
+    });
+
+    testAcceleratorBtn.addEventListener("click", function(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      acceleratorPicker.classList.add("open");
+      var targets = [];
+      for (var i = 0; i < acceleratorOptions.length; i++) {
+        if (acceleratorOptions[i].url) targets.push(acceleratorOptions[i]);
+      }
+      if (acceleratorSelect.value === "__custom__" && accelerator.value) {
+        targets.push({ label: "加速地址：自定义", url: accelerator.value, custom: true });
+      }
+      if (!targets.length) {
+        setStatus("没有可测试的 GitHub 加速地址", "err");
+        return;
+      }
+      var before = acceleratorSelect.value;
+      setStatus("正在测试 " + targets.length + " 个加速地址");
+      apiPost("test-accelerator", { repo_url: repoUrl.value, accelerators: targets }).then(function(data) {
+        acceleratorLatency = {};
+        var results = data.results || [];
+        for (var r = 0; r < results.length; r++) {
+          if (results[r].url === accelerator.value) {
+            acceleratorLatency.__custom__ = results[r];
+          }
+          acceleratorLatency[results[r].url] = results[r];
+        }
+        renderAccelerators(acceleratorOptions, before);
+        acceleratorPicker.classList.add("open");
+        var okCount = 0;
+        for (var j = 0; j < results.length; j++) if (results[j].ok) okCount++;
+        setStatus("测速完成：" + okCount + "/" + results.length + " 个可用", okCount ? "ok" : "err");
+      }).catch(function(error) {
+        setStatus(error.message, "err");
+      });
+    });
+
+    document.getElementById("downloadBtn").addEventListener("click", function() {
+      setStatus("正在下载图库");
+      apiPost("download", { repo_url: repoUrl.value, accelerator: selectedAccelerator(), mode: downloadMode.value }).then(function(data) {
+        var message = "新增 " + data.imported + " 张表情包";
+        if (data.overwritten) message += "，覆盖 " + data.overwritten + " 张";
+        if (data.appended) message += "，追加 " + data.appended + " 张";
+        message += "，当前共 " + data.total + " 张";
+        setStatus(message, (data.imported || data.overwritten || data.appended) ? "ok" : "err");
+        return loadImages(true);
+      }).catch(function(error) {
+        setStatus(error.message, "err");
+      });
+    });
+
+    document.getElementById("selectAllBtn").addEventListener("click", function() {
+      var visible = currentImages();
+      selected = {};
+      for (var i = 0; i < visible.length; i++) selected[visible[i].name] = true;
+      syncSelectionState();
+    });
+
+    document.getElementById("clearBtn").addEventListener("click", function() {
+      selected = {};
+      syncSelectionState();
+    });
+
+    exportBtn.addEventListener("click", function() {
+      var names = selectedNames();
+      if (!names.length) return;
+      setStatus("正在打包下载");
+      if (sdk.download) {
+        sdk.download("export-file", { names: JSON.stringify(names) }, "nailong-memes.zip").then(function() {
+          setStatus("已开始下载 " + names.length + " 张表情包", "ok");
+        }).catch(function(error) {
+          setStatus(error.message, "err");
+        });
+        return;
+      }
+      apiPost("export", { names: names }).then(function(data) {
+        var bytes = atob(data.data);
+        var buffer = new Uint8Array(bytes.length);
+        for (var i = 0; i < bytes.length; i++) buffer[i] = bytes.charCodeAt(i);
+        var url = URL.createObjectURL(new Blob([buffer], { type: data.mime }));
+        var link = document.createElement("a");
+        link.href = url;
+        link.download = data.filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+        setStatus("已开始下载 " + names.length + " 张表情包", "ok");
+      }).catch(function(error) {
+        setStatus(error.message, "err");
+      });
+    });
+
+    deleteBtn.addEventListener("click", function() {
+      var names = selectedNames();
+      if (!names.length) return;
+      showDialog({
+        title: "删除表情包",
+        message: "确定删除选中的 " + names.length + " 张表情包吗？这个操作会直接删除本地文件。",
+        input: false,
+        okText: "删除"
+      }).then(function(ok) {
+        if (!ok) return;
+        setStatus("正在删除");
+        return apiPost("delete", { names: names }).then(function(data) {
+          selected = {};
+          setStatus("已删除 " + data.deleted + " 张表情包", "ok");
+          return loadImages(true);
+        });
+      }).catch(function(error) {
+        setStatus(error.message, "err");
+      });
+    });
+
+    if (!sdk) {
+      setStatus("页面 bridge 未就绪，请在 AstrBot 插件页面中打开。", "err");
+    } else {
+      sdk.ready().then(function() {
+        loadBrandLogo();
+        return loadImages(true);
+      }).catch(function(error) {
+        setStatus(error.message, "err");
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+{
+  "auto_send_enabled": {
+    "description": "检测聊天自动发送奶龙",
+    "type": "bool",
+    "hint": "开启后，检测到普通聊天时会按概率自动发送一张随机奶龙表情包。插件会自动跳过本插件指令、其他插件已识别的指令，以及带常见命令前缀的消息，避免打断正常指令。",
+    "default": true
+  },
+  "auto_send_probability": {
+    "description": "自动发送概率（百分比）",
+    "type": "float",
+    "hint": "每条普通聊天触发自动发送的概率，范围 0 到 100。默认 1 表示 1%。",
+    "default": 1.0
+  },
+  "send_as_gif": {
+    "description": "静态图以 GIF 格式发送",
+    "type": "bool",
+    "hint": "开启后，抽到 png/jpg/webp 等静态表情包时会临时转换为 GIF 后发送，更接近表情包样式，也可以防止部分平台把静态图显示得过大；抽到 GIF 动态图时仍按原 GIF 发送。注意：同一个表情包如果同时有静态图版本和 GIF 版本，因为文件内容不同，哈希值也不同，添加奶龙的去重不会把它们识别成同一张，需要用户自行判断。关闭时所有表情包都按原文件格式发送。",
+    "default": false
+  },
+  "only_send_gif": {
+    "description": "只发送 GIF 动态表情包",
+    "type": "bool",
+    "hint": "开启后，来只奶龙指令和自动发送都只会从 GIF 动态表情包里随机选择。关闭时从全部表情包里随机选择。",
+    "default": false
+  }
+}
