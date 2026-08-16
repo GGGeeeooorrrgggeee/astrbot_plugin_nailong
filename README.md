@@ -192,3 +192,7 @@ plugin_data/astrbot_plugin_nailong/
 ### 删除奶龙：
 
 ![删除奶龙示例](example_images/delete_nailong_demo.png)
+
+### 插件页面：
+
+![插件页面示例](example_images/plugin_page_demo.png)
