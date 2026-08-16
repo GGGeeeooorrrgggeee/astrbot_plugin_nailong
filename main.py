@@ -96,7 +96,7 @@ class NailongPlugin(Star):
             if not config_path.exists():
                 continue
             try:
-                data = json.loads(config_path.read_text(encoding="utf-8"))
+                data = json.loads(config_path.read_text(encoding="utf-8-sig"))
             except Exception as e:
                 logger.warning(f"[奶龙插件] 读取命令前缀配置失败，将使用默认指令过滤前缀: {e}")
                 continue
@@ -338,12 +338,17 @@ class NailongPlugin(Star):
     @filter.command("删除奶龙")
     async def del_nailong(self, event: AstrMessageEvent):
         """回复一张图库里的表情包后发送“删除奶龙”。"""
-        deleted = await self._delete_replied_images(event)
+        processed, deleted = await self._delete_replied_images(event)
+        failed = processed - deleted
+        total = len(self._list_images(self.data_dir))
 
-        if deleted:
-            yield event.plain_result(f"✅已删除 {deleted} 张奶龙表情包，当前还有 {len(self._list_images(self.data_dir))} 张。")
+        if processed > 1:
+            prefix = "✅" if deleted else "❌"
+            yield event.plain_result(f"{prefix}本次预删除 {processed} 张表情包，其中成功 {deleted} 张，失败 {failed} 张。当前共 {total} 张。")
+        elif deleted:
+            yield event.plain_result(f"✅已删除 {deleted} 张奶龙表情包，当前还有 {total} 张。")
         else:
-            yield event.plain_result("❌没有找到对应的奶龙表情包。请回复图库里的表情包后发送删除奶龙。")
+            yield event.plain_result("❌没有找到对应的奶龙表情包。")
 
     async def _send_random_image(self, event: AstrMessageEvent, filename: str = ""):
         filename = (filename or "").strip()
@@ -493,18 +498,22 @@ class NailongPlugin(Star):
                 logger.error(f"[奶龙插件] 添加表情包失败: {e}")
                 failed += 1
 
+        processed = len(saved_names) + duplicate + failed
+        total = len(self._list_images(self.data_dir))
         if not saved_names:
-            if duplicate and not failed:
+            if duplicate == 1 and processed == 1:
                 yield event.plain_result("❌该奶龙表情包已存在，请勿重复添加！")
+                return
+            if duplicate or failed:
+                yield event.plain_result(f"❌本次预添加 {processed} 张表情包，其中新增 0 张，本地已存在 {duplicate} 张，添加失败 {failed} 张。当前共 {total} 张。")
                 return
             yield event.plain_result("❌添加失败，请确认发送的是有效表情包。")
             return
 
-        message = f"✅成功添加 {len(saved_names)} 张奶龙表情包，当前共 {len(self._list_images(self.data_dir))} 张。"
-        if duplicate:
-            message += f" 有 {duplicate} 张已存在，已跳过。"
-        if failed:
-            message += f" 有 {failed} 张添加失败。"
+        if processed > 1:
+            message = f"✅本次预添加 {processed} 张表情包，其中新增 {len(saved_names)} 张，本地已存在 {duplicate} 张，添加失败 {failed} 张。当前共 {total} 张。"
+        else:
+            message = f"✅成功添加 {len(saved_names)} 张奶龙表情包，当前共 {total} 张。"
         yield event.plain_result(message)
 
     def _delete_images(self, filenames: List[str]) -> int:
@@ -534,13 +543,15 @@ class NailongPlugin(Star):
         self._rename_hash_record(source, target)
         return target
 
-    async def _delete_replied_images(self, event: AstrMessageEvent) -> int:
+    async def _delete_replied_images(self, event: AstrMessageEvent) -> tuple:
         image_components = self._extract_image_components_with_reply(event.get_messages())
         if not image_components:
-            return 0
+            return 0, 0
 
         deleted = 0
+        processed = 0
         for image_component in image_components:
+            processed += 1
             try:
                 image_url = self._get_image_url(image_component)
                 if not image_url:
@@ -553,7 +564,7 @@ class NailongPlugin(Star):
                     deleted += 1
             except Exception as e:
                 logger.error(f"[奶龙插件] 回复表情包删除失败: {e}")
-        return deleted
+        return processed, deleted
 
     async def _download_github_pack(self, repo_url: str, accelerator: str = "", mode: str = "overwrite") -> dict:
         archive_url = self._github_archive_url((repo_url or "").strip() or DEFAULT_MEME_REPO_URL)
@@ -568,6 +579,7 @@ class NailongPlugin(Star):
             skipped = 0
             appended = 0
             overwritten = 0
+            duplicate = 0
             overwrite_hash_index = {}
             if mode == "overwrite":
                 overwritten = self._clear_image_store()
@@ -591,8 +603,11 @@ class NailongPlugin(Star):
                     existing_by_hash = self._find_image_by_hash(digest)
 
                     if mode == "append":
+                        if existing_by_hash:
+                            duplicate += 1
+                            continue
                         save_path = self._unique_path(target_path)
-                        if existing_by_hash or target_path.exists():
+                        if target_path.exists():
                             appended += 1
                         else:
                             imported += 1
@@ -614,6 +629,7 @@ class NailongPlugin(Star):
             "skipped": skipped,
             "appended": appended,
             "overwritten": overwritten,
+            "duplicate": duplicate,
             "total": len(self._list_images(self.data_dir)),
             "mode": mode,
         }
