@@ -1,6 +1,6 @@
 name: astrbot_plugin_nailong
 display_name: 来只奶龙
 desc: 来只奶龙 - 随机发送奶龙表情包，支持命令添加、删除、插件页面管理和 GitHub 下载
-version: 1.1.0
+version: 2.0.0
 author: George
 repo: https://github.com/GGGeeeooorrrgggeee/astrbot_plugin_nailong
