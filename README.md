@@ -136,6 +136,7 @@ Pillow>=10.0.0
 ```text
 https://github.com/GGGeeeooorrrgggeee/nailong-memes
 ```
+![插件页面示例](example_images/plugin_page_demo.png)
 
 ## 十、数据目录
 
@@ -175,7 +176,7 @@ plugin_data/astrbot_plugin_nailong/
 1. `添加奶龙` 的去重依赖表情包文件哈希值判断。若同一个表情包同时存在静态图版本和 GIF 动态图版本，因为文件内容不同，哈希值也不同，插件不会把它们识别成同一张表情包。同一个表情包如果像素尺寸、压缩方式、裁剪范围、颜色等文件内容有变化，哈希值也会不同，同样可能无法识别为重复表情包，需要用户自行判断是否重复添加。
 2. `默认图库` 里有一个 `GIF` 表情包 `F1520BD8CD600B54D8F6CDE1791DEF0F.gif` 大小为 `11.9 MB`，有点大，所以在插件页面加载不出来。
 
-## 十三、示例图
+## 十三、指令示例图
 
 ### 来只奶龙/奶龙：
 
@@ -192,7 +193,3 @@ plugin_data/astrbot_plugin_nailong/
 ### 删除奶龙：
 
 ![删除奶龙示例](example_images/delete_nailong_demo.png)
-
-### 插件页面：
-
-![插件页面示例](example_images/plugin_page_demo.png)
