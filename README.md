@@ -6,7 +6,7 @@
 
 
 <p align="center" style="margin-top: 8px; font-size: 18px;">
-  ✅ <a href="https://github.com/AstrBotDevs/AstrBot" target="_blank">AstrBot</a> 奶龙表情包随机发送、自动发送与插件页面管理插件 ✅
+  ✨ <a href="https://github.com/AstrBotDevs/AstrBot" target="_blank">AstrBot</a> 奶龙表情包随机发送、自动发送与插件页面管理插件 ✨
 </p>
 
 
@@ -40,6 +40,7 @@
 - 插件名：`astrbot_plugin_nailong`
 - 仓库：[astrbot_plugin_nailong](https://github.com/GGGeeeooorrrgggeee/astrbot_plugin_nailong)
 - 支持平台：`aiocqhttp`
+- 默认图库：[nailong-memes](https://github.com/GGGeeeooorrrgggeee/nailong-memes)
 
 ## 三、核心功能
 
@@ -82,7 +83,7 @@ Pillow>=10.0.0
 
 ## 六、安装
 
-1. 将 `astrbot_plugin_nailong` 文件夹放入 AstrBot 的插件目录，或通过 AstrBot 插件管理安装。
+1. 通过 AstrBot 插件管理使用 `zip` 压缩包或仓库链接安装。
 2. AstrBot 通常会自动安装 `requirements.txt` 中的依赖；如果安装失败，请根据日志手动安装。
 3. 重载或重启 AstrBot。
 4. 在 AstrBot WebUI 中打开插件配置，按需调整发送概率和发送格式。
@@ -126,16 +127,11 @@ Pillow>=10.0.0
 | 删除表情包   | 支持选择单张或多张表情包后批量删除                           |
 | 重命名表情包 | 直接修改本地文件名，不只是修改页面显示名                     |
 | 批量下载     | 将选中的表情包打包成压缩包下载到电脑                         |
-| 下载图库     | 从指定 GitHub 仓库下载表情包，地址为空时默认使用官方奶龙图库 |
+| 下载图库     | 从指定 GitHub 仓库下载表情包，地址为空时使用默认奶龙图库；目标仓库结构不强制要求，会按文件夹名或后缀自动分到本地 gif/images 目录 |
 | 下载模式     | 支持 `下载图库（覆盖已存在）` 和 `下载图库（追加已存在）`    |
 | 加速地址     | 默认不使用 GitHub 加速地址；可在插件页面下拉选择内置加速地址，也可以填写自定义加速地址 |
 | 刷新提示     | 首次进入页面会静默加载图库；点击右上角 `刷新` 后才会显示 `已刷新` |
 
-默认图库地址：
-
-```text
-https://github.com/GGGeeeooorrrgggeee/nailong-memes
-```
 ![插件页面示例](example_images/plugin_page_demo.png)
 
 ## 十、数据目录
@@ -152,7 +148,7 @@ plugin_data/astrbot_plugin_nailong/
 plugin_data/astrbot_plugin_nailong/
 ├── gif/                  # GIF 动态表情包
 ├── images/               # 静态表情包
-└── _hash_index.json      # 已管理表情包的哈希记录
+└── _hash_index.json      # 表情包文件路径与哈希值索引
 ```
 
 说明：
@@ -166,12 +162,12 @@ plugin_data/astrbot_plugin_nailong/
 1. 如果图库为空，使用 `来只奶龙/奶龙` 会返回 `❌暂无奶龙表情包！`。
 2. GitHub 图库默认直连下载，不使用加速地址；如果速度慢或失败，可以在插件页面选择加速地址并先测试延迟。
 3. 管理页面会自动读取本地数据目录中的表情包；如果你手动删除了整个 `plugin_data/astrbot_plugin_nailong/` 目录，原先下载或上传的表情包也会被删除。
-4. `下载图库（覆盖已存在）` 会先清空当前本地图库和哈希记录，再导入本次下载到的表情包；`下载图库（追加已存在）` 会尽量保留已有文件并追加新文件。
+4. `下载图库（覆盖已存在）` 会先清空当前本地图库和哈希记录，再导入本次下载到的表情包；`下载图库（追加已存在）` 会保留已有文件并追加新文件。
 5. 自动发送会过滤指令消息；如果其他插件使用完全无前缀的自然语言指令，且 AstrBot 没有把它标记为已识别指令，仍可能被当作普通聊天参与概率判断。
 
 ## 十二、现存 Bug
 
-以下问题属于当前逻辑限制，暂无较好的优化方法：
+以下问题属于当前逻辑限制，暂时还没有完全合适的修复方案：
 
 1. `添加奶龙` 的去重依赖表情包文件哈希值判断。若同一个表情包同时存在静态图版本和 GIF 动态图版本，因为文件内容不同，哈希值也不同，插件不会把它们识别成同一张表情包。同一个表情包如果像素尺寸、压缩方式、裁剪范围、颜色等文件内容有变化，哈希值也会不同，同样可能无法识别为重复表情包，需要用户自行判断是否重复添加。
 2. `默认图库` 里有一个 `GIF` 表情包 `F1520BD8CD600B54D8F6CDE1791DEF0F.gif` 大小为 `11.9 MB`，有点大，所以在插件页面加载不出来。
