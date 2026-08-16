@@ -41,7 +41,7 @@
 ## 二、项目信息
 
 - 作者：[George](https://github.com/GGGeeeooorrrgggeee)
-- 版本：`1.2.0`
+- 版本：`2.0.0`
 - 插件名：`astrbot_plugin_nailong`
 - 仓库：[astrbot_plugin_nailong](https://github.com/GGGeeeooorrrgggeee/astrbot_plugin_nailong)
 - 支持平台：`aiocqhttp`
