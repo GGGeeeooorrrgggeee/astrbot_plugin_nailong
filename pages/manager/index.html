@@ -106,6 +106,39 @@
       display: block;
     }
 
+    .status.closable {
+      padding-right: 50px;
+      pointer-events: auto;
+    }
+
+    .status-close {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      display: none;
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      background: rgba(47, 30, 5, .14);
+      color: #2f1e05;
+      cursor: pointer;
+      font-size: 22px;
+      line-height: 1;
+      font-weight: 900;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .status.closable .status-close {
+      display: flex;
+    }
+
+    .status-close:hover {
+      background: rgba(47, 30, 5, .22);
+    }
+
     .status.ok {
       color: var(--ok);
     }
@@ -654,7 +687,10 @@
     <section class="grid" id="grid"></section>
   </main>
 
-  <div class="status" id="status"></div>
+  <div class="status" id="status">
+    <button class="status-close" id="statusClose" type="button" aria-label="关闭提示">×</button>
+    <span id="statusMessage"></span>
+  </div>
 
   <div class="overlay" id="preview" aria-hidden="true">
     <div class="preview-box">
@@ -686,6 +722,8 @@
     var sdk = window.AstrBotPluginPage;
     var grid = document.getElementById("grid");
     var statusEl = document.getElementById("status");
+    var statusMessage = document.getElementById("statusMessage");
+    var statusClose = document.getElementById("statusClose");
     var brandLogo = document.getElementById("brandLogo");
     var countEl = document.getElementById("count");
     var visibleCountEl = document.getElementById("visibleCount");
@@ -768,25 +806,34 @@
       return selectedNames().length;
     }
 
-    function setStatus(message, type) {
+    function clearStatus() {
       if (statusTimer) {
         window.clearTimeout(statusTimer);
         statusTimer = null;
       }
-      statusEl.textContent = message || "";
+      statusMessage.textContent = "";
+      statusEl.className = "status";
+      document.body.classList.remove("busy");
+    }
+
+    function setStatus(message, type, sticky) {
+      if (statusTimer) {
+        window.clearTimeout(statusTimer);
+        statusTimer = null;
+      }
+      statusMessage.textContent = message || "";
       document.body.classList.toggle("busy", !!message && !type);
-      statusEl.className = "status " + (type || "loading") + (message ? " show" : "");
-      if (message && type) {
+      statusEl.className = "status " + (type || "loading") + (message ? " show" : "") + (message && type && sticky ? " closable" : "");
+      if (message && type && !sticky) {
         statusTimer = window.setTimeout(function() {
-          statusEl.textContent = "";
-          statusEl.className = "status";
-          document.body.classList.remove("busy");
-          statusTimer = null;
+          clearStatus();
         }, type === "err" ? 3600 : 1800);
       } else if (!message) {
         document.body.classList.remove("busy");
       }
     }
+
+    statusClose.addEventListener("click", clearStatus);
 
     function escapeHtml(value) {
       return String(value)
@@ -1161,7 +1208,7 @@
           setStatus("正在重命名");
           return apiPost("rename", { name: image.name, new_name: next }).then(function() {
             delete selected[image.name];
-            setStatus("已重命名", "ok");
+          setStatus("重命名成功", "ok");
             return loadImages(true);
           });
         }).catch(function(error) {
@@ -1204,24 +1251,25 @@
     document.getElementById("uploadBtn").addEventListener("click", function() {
       var files = Array.prototype.slice.call(fileInput.files || []);
       if (!files.length) {
-        setStatus("请选择表情包", "err");
+        setStatus("请选择奶龙表情包", "err", true);
         return;
       }
       setStatus("正在上传");
       Promise.all(files.map(uploadOne)).then(function(results) {
         var savedCount = 0;
         var duplicateCount = 0;
+        var totalCount = 0;
         for (var i = 0; i < results.length; i++) {
           savedCount += (results[i].saved || []).length;
           duplicateCount += results[i].duplicate || 0;
+          if (typeof results[i].count === "number" && results[i].count > totalCount) totalCount = results[i].count;
         }
         fileInput.value = "";
-        var message = savedCount ? "已添加 " + savedCount + " 张表情包" : "没有新增表情包";
-        if (duplicateCount) message += "，" + duplicateCount + " 张已存在";
-        setStatus(message, savedCount ? "ok" : "err");
+        var message = "本次预添加 " + files.length + " 张奶龙表情包，其中新增 " + savedCount + " 张，本地已存在 " + duplicateCount + " 张。当前共 " + totalCount + " 张";
+        setStatus(message, savedCount ? "ok" : "err", true);
         return loadImages(true);
       }).catch(function(error) {
-        setStatus(error.message, "err");
+        setStatus(error.message, "err", true);
       });
     });
 
@@ -1294,14 +1342,20 @@
     document.getElementById("downloadBtn").addEventListener("click", function() {
       setStatus("正在下载图库");
       apiPost("download", { repo_url: repoUrl.value, accelerator: selectedAccelerator(), mode: downloadMode.value }).then(function(data) {
-        var message = "新增 " + data.imported + " 张表情包";
-        if (data.overwritten) message += "，覆盖 " + data.overwritten + " 张";
-        if (data.appended) message += "，追加 " + data.appended + " 张";
-        message += "，当前共 " + data.total + " 张";
-        setStatus(message, (data.imported || data.overwritten || data.appended) ? "ok" : "err");
+        var added = (data.imported || 0) + (data.appended || 0);
+        var duplicate = data.duplicate || 0;
+        var message;
+        if (data.mode === "overwrite") {
+          message = "新增 " + added + " 张奶龙表情包";
+          if (data.overwritten) message += "，覆盖 " + data.overwritten + " 张";
+          message += "。当前共 " + data.total + " 张";
+        } else {
+          message = "本次预添加 " + (added + duplicate) + " 张奶龙表情包，其中新增 " + added + " 张，本地已存在 " + duplicate + " 张。当前共 " + data.total + " 张";
+        }
+        setStatus(message, (data.mode === "overwrite" ? (added || data.overwritten) : added) ? "ok" : "err", true);
         return loadImages(true);
       }).catch(function(error) {
-        setStatus(error.message, "err");
+        setStatus(error.message, "err", true);
       });
     });
 
@@ -1323,7 +1377,7 @@
       setStatus("正在打包下载");
       if (sdk.download) {
         sdk.download("export-file", { names: JSON.stringify(names) }, "nailong-memes.zip").then(function() {
-          setStatus("已开始下载 " + names.length + " 张表情包", "ok");
+          setStatus("已开始下载 " + names.length + " 张奶龙表情包", "ok");
         }).catch(function(error) {
           setStatus(error.message, "err");
         });
@@ -1341,7 +1395,7 @@
         link.click();
         link.remove();
         URL.revokeObjectURL(url);
-        setStatus("已开始下载 " + names.length + " 张表情包", "ok");
+        setStatus("已开始下载 " + names.length + " 张奶龙表情包", "ok");
       }).catch(function(error) {
         setStatus(error.message, "err");
       });
@@ -1360,11 +1414,11 @@
         setStatus("正在删除");
         return apiPost("delete", { names: names }).then(function(data) {
           selected = {};
-          setStatus("已删除 " + data.deleted + " 张表情包", "ok");
+          setStatus("已删除 " + data.deleted + " 张奶龙表情包", "ok", true);
           return loadImages(true);
         });
       }).catch(function(error) {
-        setStatus(error.message, "err");
+        setStatus(error.message, "err", true);
       });
     });
 
