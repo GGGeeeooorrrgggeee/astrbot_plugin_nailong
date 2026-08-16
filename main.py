@@ -54,7 +54,7 @@ _PLUGIN_COMMANDS = {"来只奶龙", "奶龙", "查询奶龙数量", "添加奶�
     PLUGIN_NAME,
     "George",
     "奶龙表情包管理 - 随机发送奶龙表情包，支持添加、删除、插件页面管理和 GitHub 下载。",
-    "1.1.0",
+    "1.2.0",
     "https://github.com/GGGeeeooorrrgggeee/astrbot_plugin_nailong",
 )
 class NailongPlugin(Star):
