@@ -47,7 +47,7 @@ _GIF_DIR_NAME = "gif"
 _STATIC_DIR_NAME = "images"
 _HASH_INDEX_FILE = "_hash_index.json"
 _DEFAULT_COMMAND_PREFIXES = {"/", "／", "!", "！", "#", "＃"}
-_PLUGIN_COMMANDS = {"来只奶龙", "奶龙", "查询奶龙数量", "添加奶龙", "删除奶龙", "查询奶龙文件名", "重命名奶龙"}
+_PLUGIN_COMMANDS = {"来只奶龙", "奶龙", "龙来", "查询奶龙数量", "添加奶龙", "删除奶龙", "查询奶龙文件名", "重命名奶龙"}
 
 
 @register(
@@ -313,6 +313,12 @@ class NailongPlugin(Star):
         async for result in self._send_random_image(event, filename):
             yield result
 
+    @filter.command("龙来")
+    async def send_nailong_niulai_alias(self, event: AstrMessageEvent, filename: str = ""):
+        """随机发送或按文件名发送一张奶龙表情包。"""
+        async for result in self._send_random_image(event, filename):
+            yield result
+
     @filter.command("查询奶龙数量")
     async def count_nailong(self, event: AstrMessageEvent):
         """查询当前奶龙图库数量。"""
@@ -343,22 +349,24 @@ class NailongPlugin(Star):
             deleted = self._delete_images([filename])
             total = len(self._list_images(self.data_dir))
             if deleted:
-                yield event.plain_result(f"✅已删除 {deleted} 张奶龙表情包，当前还有 {total} 张。")
+                yield event.plain_result(f"✅ 已删除 {deleted} 张！当前共 {total} 张！")
             else:
-                yield event.plain_result(f"❌没有找到名为“{filename}”的奶龙表情包。")
+                yield event.plain_result(f"❌ 没找到“{filename}”！")
             return
 
         processed, deleted = await self._delete_replied_images(event)
-        failed = processed - deleted
+        unmatched = processed - deleted
         total = len(self._list_images(self.data_dir))
 
-        if deleted and not failed:
-            yield event.plain_result(f"✅已删除 {deleted} 张奶龙表情包，当前还有 {total} 张。")
+        if deleted and not unmatched:
+            yield event.plain_result(f"✅ 已删除 {deleted} 张！当前共 {total} 张！")
         elif processed > 1:
-            prefix = "" if deleted else "❌"
-            yield event.plain_result(f"{prefix}本次预删除 {processed} 张奶龙表情包，其中成功 {deleted} 张，失败 {failed} 张。当前共 {total} 张。")
+            if deleted:
+                yield event.plain_result(f"✅ 已删除 {deleted} 张，未匹配 {unmatched} 张！当前共 {total} 张！")
+            else:
+                yield event.plain_result("❌ 没找到对应的表情包！")
         else:
-            yield event.plain_result("❌没有找到对应的奶龙表情包。")
+            yield event.plain_result("❌ 没找到对应的表情包！")
 
     @filter.permission_type(filter.PermissionType.ADMIN)
     @filter.command("查询奶龙文件名")
@@ -366,16 +374,16 @@ class NailongPlugin(Star):
         """查看消息中或回复的图库表情包文件名。"""
         processed, paths = await self._find_event_image_paths(event)
         if not processed or not paths:
-            yield event.plain_result("❌没有找到对应的奶龙表情包。")
+            yield event.plain_result("❌ 没找到对应的表情包！")
             return
 
         filenames = [path.name for path in paths]
         if len(filenames) == 1:
-            yield event.plain_result(f"✅文件名：{filenames[0]}")
+            yield event.plain_result(f"✅ 文件名：{filenames[0]}")
             return
 
         lines = "\n".join(f"{index}. {filename}" for index, filename in enumerate(filenames, 1))
-        yield event.plain_result(f"✅文件名：\n{lines}")
+        yield event.plain_result(f"✅ 文件名：\n{lines}")
 
     @filter.permission_type(filter.PermissionType.ADMIN)
     @filter.command("重命名奶龙")
@@ -387,53 +395,53 @@ class NailongPlugin(Star):
 
         if paths:
             if not old_name or new_name:
-                yield event.plain_result("❌带表情包重命名时，请发送“重命名奶龙 新文件名”。")
+                yield event.plain_result("❌ 回复表情包重命名时，只需要发送“重命名奶龙 新文件名”！")
                 return
             source_name = self._relative_image_name(paths[0])
             target_name = old_name
         else:
             if processed:
-                yield event.plain_result("❌没有找到对应的奶龙表情包。")
+                yield event.plain_result("❌ 没找到对应的表情包！")
                 return
             if not old_name or not new_name:
-                yield event.plain_result("❌请发送“重命名奶龙 原文件名 新文件名”，或回复图库里的表情包后发送“重命名奶龙 新文件名”。")
+                yield event.plain_result("❌ 用法：重命名奶龙 原文件名 新文件名；或回复表情包发送“重命名奶龙 新文件名”！")
                 return
             source_name = old_name
             target_name = new_name
 
         source_path = self._resolve_image_path(source_name)
         if not source_path:
-            yield event.plain_result(f"❌没有找到名为“{source_name}”的奶龙表情包。")
+            yield event.plain_result(f"❌ 没找到“{source_name}”！")
             return
 
         desired_target = self._rename_target_path(source_path, target_name)
         target_exists = desired_target != source_path and desired_target.exists()
         renamed = self._rename_image(source_name, target_name)
         if not renamed:
-            yield event.plain_result(f"❌没有找到名为“{source_name}”的奶龙表情包。")
+            yield event.plain_result(f"❌ 没找到“{source_name}”！")
             return
 
         if target_exists:
-            yield event.plain_result(f"✅“{desired_target.name}”已存在，已自动重命名为“{renamed.name}”。")
+            yield event.plain_result(f"✅ “{desired_target.name}”已存在，已自动改为“{renamed.name}”！")
         else:
-            yield event.plain_result(f"✅已重命名为“{renamed.name}”。")
+            yield event.plain_result(f"✅ 已重命名为“{renamed.name}”！")
 
     async def _send_random_image(self, event: AstrMessageEvent, filename: str = ""):
         filename = (filename or "").strip()
         image_files = self._list_images(self.data_dir)
         if not image_files:
-            yield event.plain_result("❌暂无奶龙表情包！")
+            yield event.plain_result("❌ 图库为空，先添加一些表情包吧！")
             return
 
         if filename:
             chosen = self._resolve_image_path(filename)
             if not chosen:
-                yield event.plain_result(f"❌没有找到名为“{filename}”的奶龙表情包。")
+                yield event.plain_result(f"❌ 没找到“{filename}”！")
                 return
         elif self._get_bool_config("only_send_gif", False):
             image_files = [path for path in image_files if path.suffix.lower() == ".gif"]
             if not image_files:
-                yield event.plain_result("❌当前没有 GIF 动态表情包，请添加 GIF 表情包或关闭“只发送 GIF 动态表情包”。")
+                yield event.plain_result("❌ 当前没有 GIF 动图，请添加 GIF 或关闭“只发送 GIF 动态表情包”！")
                 return
             chosen = random.choice(image_files)
         else:
@@ -455,7 +463,7 @@ class NailongPlugin(Star):
                 yield event.image_result(str(send_path))
         except Exception as e:
             logger.error(f"[奶龙插件] 发送表情包失败 {chosen.name}: {e}")
-            yield event.plain_result("❌发送表情包失败，请稍后再试。")
+            yield event.plain_result("❌ 发送失败，请稍后再试！")
         finally:
             if temp_path:
                 temp_path.unlink(missing_ok=True)
@@ -464,7 +472,7 @@ class NailongPlugin(Star):
         image_files = self._list_images(self.data_dir)
         gif_count = sum(1 for path in image_files if path.suffix.lower() == ".gif")
         static_count = len(image_files) - gif_count
-        return f"奶龙表情包共 {len(image_files)} 张，其中 GIF {gif_count} 张、静态 {static_count} 张！"
+        return f"奶龙共 {len(image_files)} 张：GIF {gif_count} 张，静态 {static_count} 张！"
 
     def _should_auto_send(self, event: AstrMessageEvent) -> bool:
         if not self._get_bool_config("auto_send_enabled", True):
@@ -538,7 +546,7 @@ class NailongPlugin(Star):
     async def _handle_image_upload(self, event: AstrMessageEvent):
         image_components = self._extract_image_components_with_reply(event.get_messages())
         if not image_components:
-            yield event.plain_result("❌请同时发送表情包和“添加奶龙”，或回复一张表情包后发送“添加奶龙”。")
+            yield event.plain_result("❌ 请发送表情包并附带“添加奶龙”，或回复表情包后发送“添加奶龙”！")
             return
 
         saved_names = []
@@ -573,15 +581,15 @@ class NailongPlugin(Star):
                 yield event.plain_result("❌该奶龙表情包已存在，请勿重复添加！")
                 return
             if duplicate or failed:
-                yield event.plain_result(f"❌本次预添加 {processed} 张奶龙表情包，其中新增 0 张，本地已存在 {duplicate} 张，添加失败 {failed} 张。当前共 {total} 张。")
+                yield event.plain_result(f"❌ 未添加新表情包：重复 {duplicate} 张，失败 {failed} 张！当前共 {total} 张！")
                 return
-            yield event.plain_result("❌添加失败，请确认发送的是有效表情包。")
+            yield event.plain_result("❌ 添加失败，请确认发送的是有效表情包！")
             return
 
         if not duplicate and not failed:
-            message = f"✅成功添加 {len(saved_names)} 张奶龙表情包，当前共 {total} 张。"
+            message = f"✅ 已添加 {len(saved_names)} 张！当前共 {total} 张！"
         else:
-            message = f"本次预添加 {processed} 张奶龙表情包，其中新增 {len(saved_names)} 张，本地已存在 {duplicate} 张，添加失败 {failed} 张。当前共 {total} 张。"
+            message = f"✅ 新增 {len(saved_names)} 张，重复 {duplicate} 张，失败 {failed} 张！当前共 {total} 张！"
         yield event.plain_result(message)
 
     def _delete_images(self, filenames: List[str]) -> int:
@@ -791,14 +799,14 @@ class NailongPlugin(Star):
                     duplicate += 1
                 else:
                     saved.append(self._relative_image_name(save_path))
-                return jsonify({"message": "表情包添加完成", "saved": saved, "duplicate": duplicate, "count": len(self._list_images(self.data_dir))}), 201
+                return jsonify({"message": "表情包已添加！", "saved": saved, "duplicate": duplicate, "count": len(self._list_images(self.data_dir))}), 201
         except Exception as e:
             logger.warning(f"[奶龙插件] 表单上传读取失败，尝试 JSON 兼容模式: {e}")
 
         payload = await self._page_payload()
         files = self._read_payload_files(payload)
         if not files:
-            return jsonify({"message": "请选择要上传的表情包。"}), 400
+            return jsonify({"message": "请选择要添加的表情包！"}), 400
 
         for filename, data in files:
             save_path, duplicate_path = self._save_image_bytes_to_store(data, filename, Path(filename).suffix.lower() or ".png")
@@ -806,18 +814,18 @@ class NailongPlugin(Star):
                 duplicate += 1
                 continue
             saved.append(self._relative_image_name(save_path))
-        return jsonify({"message": "表情包添加完成", "saved": saved, "duplicate": duplicate, "count": len(self._list_images(self.data_dir))}), 201
+        return jsonify({"message": "表情包已添加！", "saved": saved, "duplicate": duplicate, "count": len(self._list_images(self.data_dir))}), 201
 
     async def page_image_data(self):
         name = str(request.args.get("name") or request.args.get("filename") or "")
         size = str(request.args.get("size") or "preview")
         path = self._resolve_image_path(name)
         if not path:
-            return jsonify({"status": "error", "message": "表情包不存在。"}), 404
+            return jsonify({"status": "error", "message": "表情包不存在！"}), 404
         max_bytes = 32 * 1024 * 1024 if size == "original" else 8 * 1024 * 1024
         file_size = path.stat().st_size
         if file_size > max_bytes:
-            return jsonify({"status": "error", "message": "表情包太大，无法在插件页面预览。", "size": file_size, "max_size": max_bytes}), 413
+            return jsonify({"status": "error", "message": "表情包太大，无法预览！", "size": file_size, "max_size": max_bytes}), 413
         media_type = mimetypes.guess_type(str(path))[0] or "image/png"
         data_url = self._build_preview_data_url(path) if size == "preview" else self._inline_data_url(path, media_type)
         return jsonify(
@@ -845,7 +853,7 @@ class NailongPlugin(Star):
         if isinstance(names, str):
             names = [names]
         deleted = self._delete_images([str(name) for name in names])
-        return jsonify({"message": "表情包删除完成", "deleted": deleted, "count": len(self._list_images(self.data_dir))}), 200
+        return jsonify({"message": "表情包已删除！", "deleted": deleted, "count": len(self._list_images(self.data_dir))}), 200
 
     async def page_rename_image(self):
         payload = await self._page_payload()
@@ -854,8 +862,8 @@ class NailongPlugin(Star):
         new_name = str(data.get("new_name") or "")
         renamed = self._rename_image(old_name, new_name)
         if not renamed:
-            return jsonify({"message": "重命名失败，请确认表情包存在且新文件名有效。"}), 400
-        return jsonify({"message": "已重命名", "name": self._relative_image_name(renamed), "filename": renamed.name}), 200
+            return jsonify({"message": "重命名失败，请确认表情包存在且新文件名有效！"}), 400
+        return jsonify({"message": "已重命名！", "name": self._relative_image_name(renamed), "filename": renamed.name}), 200
 
     async def page_download_pack(self):
         payload = await self._page_payload()
@@ -902,7 +910,7 @@ class NailongPlugin(Star):
             latency_ms = int((time.perf_counter() - started) * 1000)
         except Exception as e:
             return jsonify({"message": str(e)}), 400
-        return jsonify({"message": "加速地址连通性正常。", "latency_ms": latency_ms}), 200
+        return jsonify({"message": "加速地址连通性正常！", "latency_ms": latency_ms}), 200
 
     async def page_export_images(self):
         payload = await self._page_payload()
@@ -914,7 +922,7 @@ class NailongPlugin(Star):
 
         files = [path for name in names if (path := self._resolve_image_path(str(name)))]
         if not files:
-            return jsonify({"message": "请选择要下载的表情包。"}), 400
+            return jsonify({"message": "请选择要下载的表情包！"}), 400
 
         if len(files) == 1:
             path = files[0]
@@ -955,7 +963,7 @@ class NailongPlugin(Star):
 
         files = [path for name in names if (path := self._resolve_image_path(str(name)))]
         if not files:
-            return jsonify({"message": "请选择要下载的表情包。"}), 400
+            return jsonify({"message": "请选择要下载的表情包！"}), 400
 
         export_dir = Path(tempfile.gettempdir()) / PLUGIN_NAME / "exports"
         export_dir.mkdir(parents=True, exist_ok=True)
@@ -1194,3 +1202,5 @@ class NailongPlugin(Star):
 
     async def terminate(self):
         logger.info("[奶龙插件] 已卸载，持久图库文件已保留。")
+
+
