@@ -642,10 +642,10 @@
 
       <div class="panel repo-panel">
         <div class="row">
-          <input id="repoUrl" type="url" value="" placeholder="可填写自定义 GitHub 仓库地址">
+          <input id="repoUrl" type="url" value="" placeholder="自定义 GitHub 仓库地址（可选）">
           <select id="downloadMode" aria-label="下载图库模式">
-            <option value="overwrite" selected>下载图库（覆盖已存在）</option>
-            <option value="append">下载图库（追加已存在）</option>
+            <option value="overwrite" selected>覆盖下载</option>
+            <option value="append">追加下载（去重）</option>
           </select>
           <button class="primary" id="downloadBtn" type="button">下载图库</button>
         </div>
@@ -669,8 +669,8 @@
     <section class="filters">
       <div class="tabs" id="tabs">
         <button class="tab active" data-filter="all" type="button">全部</button>
-        <button class="tab" data-filter="gif" type="button">GIF动态表情包</button>
-        <button class="tab" data-filter="static" type="button">静态表情包</button>
+        <button class="tab" data-filter="gif" type="button">GIF 动图</button>
+        <button class="tab" data-filter="static" type="button">静态图</button>
       </div>
     </section>
 
@@ -1089,7 +1089,7 @@
       }
 
       var visible = currentImages();
-      countEl.textContent = "共 " + images.length + " 张，GIF " + gifCount + " 张，静态 " + staticCount + " 张";
+      countEl.textContent = "共 " + images.length + " 张：GIF " + gifCount + " 张，静态 " + staticCount + " 张";
       visibleCountEl.textContent = "当前分类 " + visible.length + " 张";
       grid.innerHTML = "";
 
@@ -1113,7 +1113,7 @@
         item.innerHTML =
           '<input class="selectBox" type="checkbox" aria-label="' + escapeHtml(image.filename) + '"' + (selected[image.name] ? " checked" : "") + ">" +
           '<div class="badge">' + labelFor(image.category) + "</div>" +
-          '<div class="thumb loading" title="点击查看整张图"><div class="thumb-spinner"></div><img alt="" loading="lazy"></div>' +
+          '<div class="thumb loading" title="点击查看表情包"><div class="thumb-spinner"></div><img alt="" loading="lazy"></div>' +
           '<div class="meta">' +
           '<div class="name" title="' + escapeHtml(image.filename) + '">' + escapeHtml(image.filename) + "</div>" +
           '<div class="size">' + formatSize(image.size) + "</div>" +
@@ -1126,7 +1126,7 @@
     }
 
     function loadImages(silent) {
-      if (!silent) setStatus("正在刷新");
+      if (!silent) setStatus("正在刷新...");
       return apiGet("list").then(function(data) {
         images = data.images || [];
         if (!acceleratorSelect.options.length) {
@@ -1138,7 +1138,7 @@
         }
         selected = nextSelected;
         render();
-        if (!silent) setStatus("已刷新", "ok");
+        if (!silent) setStatus("已刷新！", "ok");
       }).catch(function(error) {
         setStatus(error.message, "err");
       });
@@ -1199,16 +1199,16 @@
 
         showDialog({
           title: "重命名表情包",
-          message: "请输入新的文件名，会直接修改本地文件名。",
+          message: "请输入新文件名，会直接修改本地文件。",
           value: image.filename,
           input: true,
           okText: "重命名"
         }).then(function(next) {
           if (!next || next === image.filename) return;
-          setStatus("正在重命名");
+          setStatus("正在重命名...");
           return apiPost("rename", { name: image.name, new_name: next }).then(function() {
             delete selected[image.name];
-          setStatus("重命名成功", "ok");
+            setStatus("已重命名！", "ok");
             return loadImages(true);
           });
         }).catch(function(error) {
@@ -1251,10 +1251,10 @@
     document.getElementById("uploadBtn").addEventListener("click", function() {
       var files = Array.prototype.slice.call(fileInput.files || []);
       if (!files.length) {
-        setStatus("请选择奶龙表情包", "err", true);
+        setStatus("请选择要添加的表情包！", "err", true);
         return;
       }
-      setStatus("正在上传");
+      setStatus("正在添加...");
       Promise.all(files.map(uploadOne)).then(function(results) {
         var savedCount = 0;
         var duplicateCount = 0;
@@ -1265,7 +1265,16 @@
           if (typeof results[i].count === "number" && results[i].count > totalCount) totalCount = results[i].count;
         }
         fileInput.value = "";
-        var message = "本次预添加 " + files.length + " 张奶龙表情包，其中新增 " + savedCount + " 张，本地已存在 " + duplicateCount + " 张。当前共 " + totalCount + " 张";
+        var message;
+        if (savedCount && !duplicateCount) {
+          message = "已添加 " + savedCount + " 张！当前共 " + totalCount + " 张！";
+        } else if (savedCount) {
+          message = "新增 " + savedCount + " 张，重复 " + duplicateCount + " 张！当前共 " + totalCount + " 张！";
+        } else if (duplicateCount) {
+          message = "这些表情包已经存在了！当前共 " + totalCount + " 张！";
+        } else {
+          message = "添加失败，请确认文件是有效表情包！";
+        }
         setStatus(message, savedCount ? "ok" : "err", true);
         return loadImages(true);
       }).catch(function(error) {
@@ -1315,11 +1324,11 @@
         targets.push({ label: "加速地址：自定义", url: accelerator.value, custom: true });
       }
       if (!targets.length) {
-        setStatus("没有可测试的 GitHub 加速地址", "err");
+        setStatus("没有可测试的加速地址！", "err");
         return;
       }
       var before = acceleratorSelect.value;
-      setStatus("正在测试 " + targets.length + " 个加速地址");
+      setStatus("正在测试 " + targets.length + " 个加速地址...");
       apiPost("test-accelerator", { repo_url: repoUrl.value, accelerators: targets }).then(function(data) {
         acceleratorLatency = {};
         var results = data.results || [];
@@ -1333,24 +1342,32 @@
         acceleratorPicker.classList.add("open");
         var okCount = 0;
         for (var j = 0; j < results.length; j++) if (results[j].ok) okCount++;
-        setStatus("测速完成：" + okCount + "/" + results.length + " 个可用", okCount ? "ok" : "err");
+        setStatus("测速完成：可用 " + okCount + "/" + results.length + " 个！", okCount ? "ok" : "err");
       }).catch(function(error) {
         setStatus(error.message, "err");
       });
     });
 
     document.getElementById("downloadBtn").addEventListener("click", function() {
-      setStatus("正在下载图库");
+      setStatus("正在下载图库...");
       apiPost("download", { repo_url: repoUrl.value, accelerator: selectedAccelerator(), mode: downloadMode.value }).then(function(data) {
         var added = (data.imported || 0) + (data.appended || 0);
         var duplicate = data.duplicate || 0;
         var message;
         if (data.mode === "overwrite") {
-          message = "新增 " + added + " 张奶龙表情包";
-          if (data.overwritten) message += "，覆盖 " + data.overwritten + " 张";
-          message += "。当前共 " + data.total + " 张";
+          if (added || data.overwritten) {
+            message = "下载完成：新增 " + added + " 张";
+            if (data.overwritten) message += "，覆盖 " + data.overwritten + " 张";
+            message += "！当前共 " + data.total + " 张！";
+          } else {
+            message = "没有新增表情包！当前共 " + data.total + " 张！";
+          }
         } else {
-          message = "本次预添加 " + (added + duplicate) + " 张奶龙表情包，其中新增 " + added + " 张，本地已存在 " + duplicate + " 张。当前共 " + data.total + " 张";
+          if (added) {
+            message = "追加完成：新增 " + added + " 张，重复 " + duplicate + " 张！当前共 " + data.total + " 张！";
+          } else {
+            message = "没有新增表情包！当前共 " + data.total + " 张！";
+          }
         }
         setStatus(message, (data.mode === "overwrite" ? (added || data.overwritten) : added) ? "ok" : "err", true);
         return loadImages(true);
@@ -1374,10 +1391,10 @@
     exportBtn.addEventListener("click", function() {
       var names = selectedNames();
       if (!names.length) return;
-      setStatus("正在打包下载");
+      setStatus("正在打包...");
       if (sdk.download) {
         sdk.download("export-file", { names: JSON.stringify(names) }, "nailong-memes.zip").then(function() {
-          setStatus("已开始下载 " + names.length + " 张奶龙表情包", "ok");
+          setStatus("已开始下载 " + names.length + " 张！", "ok");
         }).catch(function(error) {
           setStatus(error.message, "err");
         });
@@ -1395,7 +1412,7 @@
         link.click();
         link.remove();
         URL.revokeObjectURL(url);
-        setStatus("已开始下载 " + names.length + " 张奶龙表情包", "ok");
+        setStatus("已开始下载 " + names.length + " 张！", "ok");
       }).catch(function(error) {
         setStatus(error.message, "err");
       });
@@ -1406,15 +1423,26 @@
       if (!names.length) return;
       showDialog({
         title: "删除表情包",
-        message: "确定删除选中的 " + names.length + " 张表情包吗？这个操作会直接删除本地文件。",
+        message: "确定删除选中的 " + names.length + " 张表情包吗？此操作会删除本地文件。",
         input: false,
         okText: "删除"
       }).then(function(ok) {
         if (!ok) return;
-        setStatus("正在删除");
+        setStatus("正在删除...");
         return apiPost("delete", { names: names }).then(function(data) {
           selected = {};
-          setStatus("已删除 " + data.deleted + " 张奶龙表情包", "ok", true);
+          var deleted = data.deleted || 0;
+          var missing = names.length - deleted;
+          var total = typeof data.count === "number" ? data.count : images.length - deleted;
+          var message;
+          if (deleted && missing > 0) {
+            message = "已删除 " + deleted + " 张，未找到 " + missing + " 张！当前共 " + total + " 张！";
+          } else if (deleted) {
+            message = "已删除 " + deleted + " 张！当前共 " + total + " 张！";
+          } else {
+            message = "没有找到选中的表情包！当前共 " + total + " 张！";
+          }
+          setStatus(message, deleted ? "ok" : "err", true);
           return loadImages(true);
         });
       }).catch(function(error) {
@@ -1423,7 +1451,7 @@
     });
 
     if (!sdk) {
-      setStatus("页面 bridge 未就绪，请在 AstrBot 插件页面中打开。", "err");
+      setStatus("页面未就绪，请从 AstrBot 插件页面打开！", "err");
     } else {
       sdk.ready().then(function() {
         loadBrandLogo();
