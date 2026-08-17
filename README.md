@@ -20,7 +20,7 @@
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
   <img src="https://img.shields.io/badge/Python-3.10%2B-blue" alt="Python Version">
   <img src="https://img.shields.io/badge/Platform-aiocqhttp-lightgrey" alt="Platform">
-  <img src="https://img.shields.io/badge/Version-2.0.0-orange" alt="Version">
+  <img src="https://img.shields.io/badge/Version-3.0.0-orange" alt="Version">
   <a href="https://github.com/GGGeeeooorrrgggeee/astrbot_plugin_nailong"><img src="https://img.shields.io/github/stars/GGGeeeooorrrgggeee/astrbot_plugin_nailong" alt="Stars"></a>
   <a href="https://github.com/GGGeeeooorrrgggeee/astrbot_plugin_nailong/commits/main"><img src="https://img.shields.io/github/last-commit/GGGeeeooorrrgggeee/astrbot_plugin_nailong" alt="Last Commit"></a>
 </p>
@@ -49,7 +49,7 @@
 ## 二、项目信息
 
 - 作者：[George](https://github.com/GGGeeeooorrrgggeee)
-- 版本：`2.0.0`
+- 版本：`3.0.0`
 - 插件名：`astrbot_plugin_nailong`
 - 仓库：[astrbot_plugin_nailong](https://github.com/GGGeeeooorrrgggeee/astrbot_plugin_nailong)
 - 支持平台：`aiocqhttp`
