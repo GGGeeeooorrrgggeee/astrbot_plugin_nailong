@@ -372,18 +372,30 @@ class NailongPlugin(Star):
     @filter.command("查询奶龙文件名")
     async def view_nailong_filename(self, event: AstrMessageEvent):
         """查看消息中或回复的图库表情包文件名。"""
-        processed, paths = await self._find_event_image_paths(event)
-        if not processed or not paths:
+        image_paths = await self._find_event_image_path_results(event)
+        if not image_paths:
             yield event.plain_result("❌ 没找到对应的表情包！")
             return
 
-        filenames = [path.name for path in paths]
-        if len(filenames) == 1:
-            yield event.plain_result(f"✅ 文件名：{filenames[0]}")
+        found_count = sum(1 for path in image_paths if path)
+        if not found_count:
+            yield event.plain_result("❌ 没找到对应的表情包！")
             return
 
-        lines = "\n".join(f"{index}. {filename}" for index, filename in enumerate(filenames, 1))
-        yield event.plain_result(f"✅ 文件名：\n{lines}")
+        if len(image_paths) == 1:
+            yield event.plain_result(f"✅ 文件名：{image_paths[0].name}")
+            return
+
+        missing_count = len(image_paths) - found_count
+        if missing_count:
+            header = f"✅ 找到 {found_count} 张，未匹配 {missing_count} 张："
+        else:
+            header = f"✅ 找到 {found_count} 张："
+        lines = "\n".join(
+            f"{index}. {path.name if path else '没找到对应的表情包！'}"
+            for index, path in enumerate(image_paths, 1)
+        )
+        yield event.plain_result(f"{header}\n{lines}")
 
     @filter.permission_type(filter.PermissionType.ADMIN)
     @filter.command("重命名奶龙")
@@ -656,6 +668,25 @@ class NailongPlugin(Star):
             except Exception as e:
                 logger.error(f"[奶龙插件] 识别消息表情包失败: {e}")
         return processed, paths
+
+    async def _find_event_image_path_results(self, event: AstrMessageEvent) -> List[Optional[Path]]:
+        image_components = self._extract_image_components_with_reply(event.get_messages())
+        if not image_components:
+            return []
+
+        results = []
+        for image_component in image_components:
+            try:
+                image_url = self._get_image_url(image_component)
+                if not image_url:
+                    results.append(None)
+                    continue
+                data = await self._download_bytes(image_url)
+                results.append(self._find_image_by_hash(self._hash_bytes(data)))
+            except Exception as e:
+                logger.error(f"[奶龙插件] 识别消息表情包失败: {e}")
+                results.append(None)
+        return results
 
     async def _download_github_pack(self, repo_url: str, accelerator: str = "", mode: str = "overwrite") -> dict:
         archive_url = self._github_archive_url((repo_url or "").strip() or DEFAULT_MEME_REPO_URL)
