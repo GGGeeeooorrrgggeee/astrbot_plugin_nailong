@@ -53,7 +53,7 @@ _PLUGIN_COMMANDS = {"来只奶龙", "奶龙", "龙来", "查询奶龙数量", "�
 @register(
     PLUGIN_NAME,
     "George",
-    "奶龙表情包管理 - 随机发送奶龙表情包，支持添加、删除、插件页面管理和 GitHub 下载。",
+    "来只奶龙 - 支持随机或指定发送奶龙表情包，支持查询数量、批量管理表情包、插件页面管理、GitHub 下载和按概率自动发送。",
     "2.0.0",
     "https://github.com/GGGeeeooorrrgggeee/astrbot_plugin_nailong",
 )
